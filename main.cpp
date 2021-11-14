@@ -2,7 +2,7 @@
 #include <fstream>
 #include <chrono>
  
-
+/*to time any function*/
 struct Timer
 {
 
@@ -59,7 +59,7 @@ matrix * readmatrix(std::ifstream & fin){
     return m;
 }
 
-/*read from file*/
+/*read file*/
 matrix * * matrices(const char * filename){
     std::ifstream fin;
     fin.open(filename);
@@ -68,13 +68,13 @@ matrix * * matrices(const char * filename){
 
     if (fin)
     {
-        Timer timer;
-
         /*read 1st arr*/
         matrix * matrix1 = readmatrix(fin);
 
         /*repeat for 2nd arr*/
         matrix * matrix2 = readmatrix(fin);
+
+        fin.close();
 
         /*store them*/
         matrix * * ms = new matrix * [2];
@@ -87,13 +87,40 @@ matrix * * matrices(const char * filename){
         return nullptr;
 }
 
+/*multiply element*/
+int multiplyElement( matrix * * matrices,const int * index){
+    /*get dimensions*/
+    int * size1 = matrices[0]->size;
+    int * size2 = matrices[1]->size;
+
+    int result = 0;
+    int x,y; // 2 elements to multiply
+    int k; //product of 2 elements
+
+    if (size1[1] == size2[0]) //checking if possible
+    {
+        for (int i = 0; i < size1[1]; i++)
+        {
+            x = matrices[0]->arr[ index[0] * size1[1] + i];
+            y = matrices[1]->arr[i * size2[1] + index[1]];
+            k = x * y;
+            result += k;
+        }
+        return result;
+        
+        //TODO: bad return, change later
+    }else
+        return -1;
+
+}
+
 
 int main(){
 
     matrix * * x = matrices("input.txt");
 
-    for (int i =0; i < 9; i++)
-        std::cout << x[0]->arr[i] <<" , index = " << i << "\n";
+    int index[] = {1,3};
+    std::cout << multiplyElement(x , index);
 
     return 0;
 }
