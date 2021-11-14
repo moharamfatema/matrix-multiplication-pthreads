@@ -23,34 +23,66 @@ struct Timer
     }
 };
 
+/*defining a matrix*/
+struct matrix
+{
+    int * size;
+    int * arr;
+};
+
+/*read matrix*/
+matrix * readmatrix(std::ifstream & fin){
+    int x, y;
+
+
+    /* get matrix size */
+    fin >> x >> y;
+
+    /*creaing one dimensional arr to improve performance*/
+    int* arr = new int[x * y];
+
+    for(int i =0;i<x;i++){
+        for (int j = 0; j < y; j++)
+            fin >> arr[i * y + j];
+        
+    }
+
+    /*store this info*/
+    int * size = new int[2];
+    size[0] = x;
+    size[1] = y;
+    matrix * m = new matrix;
+
+    m->size = size;
+    m->arr = arr;
+
+    return m;
+}
 
 /*read from file*/
-int* matrix(){
+matrix * * matrices(const char * filename){
     std::ifstream fin;
-    fin.open("input.txt");
-    int x,y;
-    int sizeofint = sizeof(int);
+    fin.open(filename);
+    
+    int x , y;
 
     if (fin)
     {
         Timer timer;
 
-        /* get matrix size */
-        fin >> x >> y;
+        /*read 1st arr*/
+        matrix * matrix1 = readmatrix(fin);
 
-        /*creaing one dimensional arr to improve performance*/
+        /*repeat for 2nd arr*/
+        matrix * matrix2 = readmatrix(fin);
 
-        int* result = new int[x * y];
-        for(int i =0;i<x;i++){
-            for (int j = 0; j < y; j++)
-            {
-                fin >> result[i * y + j];
-            }
-            
-        }
-     
-        
-        return result;
+        /*store them*/
+        matrix * * ms = new matrix * [2];
+        ms[0] = matrix1;
+        ms[1] = matrix2;
+
+
+        return ms;
     }else
         return nullptr;
 }
@@ -58,7 +90,10 @@ int* matrix(){
 
 int main(){
 
-    int * x = matrix();
+    matrix * * x = matrices("input.txt");
+
+    for (int i =0; i < 9; i++)
+        std::cout << x[0]->arr[i] <<" , index = " << i << "\n";
 
     return 0;
 }
