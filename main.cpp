@@ -1,7 +1,13 @@
 #include <iostream>
 #include <fstream>
 #include <chrono>
+#include <pthread.h>
+#include <unistd.h>
+#include <cstdlib>
+
+/*formula for indices: [i][j] = i * noofcolumns + j*/
  
+
 /*to time any function*/
 struct Timer
 {
@@ -29,6 +35,11 @@ struct matrix
     int * size;
     int * arr;
 };
+
+
+/*global vars*/
+matrix * * inputMatrices; 
+
 
 /*read matrix*/
 matrix * readmatrix(std::ifstream & fin){
@@ -88,10 +99,11 @@ matrix * * matrices(const char * filename){
 }
 
 /*multiply element*/
-int multiplyElement( matrix * * matrices,const int * index){
+void * multiplyElement(void * indexptr){
+    int * index  = (int * )indexptr;
     /*get dimensions*/
-    int * size1 = matrices[0]->size;
-    int * size2 = matrices[1]->size;
+    int * size1 = inputMatrices[0]->size;
+    int * size2 = inputMatrices[1]->size;
 
     int result = 0;
     int x,y; // 2 elements to multiply
@@ -101,26 +113,85 @@ int multiplyElement( matrix * * matrices,const int * index){
     {
         for (int i = 0; i < size1[1]; i++)
         {
-            x = matrices[0]->arr[ index[0] * size1[1] + i];
-            y = matrices[1]->arr[i * size2[1] + index[1]];
+            x = inputMatrices[0]->arr[ index[0] * size1[1] + i];
+            y = inputMatrices[1]->arr[i * size2[1] + index[1]];
             k = x * y;
             result += k;
         }
-        return result;
-        
+        std::cout << result << "\t";
+                
         //TODO: bad return, change later
-    }else
-        return -1;
+    }
+    pthread_exit(0);
 
+}
+
+/*procedure 1*/
+int elements_as_threads(){
+    /*start timer*/
+    Timer timer;
+
+    int noof_threads = inputMatrices[0]->size[0] * inputMatrices[1]->size[1];
+    int returnval;
+
+    int * index = new int[2];
+    
+    /*initialize threads and attributes*/
+    pthread_t threads[noof_threads]; //to store thread id's
+    pthread_attr_t attr;
+    void * status;
+
+    /*set as joinable thread*/
+    //pthread_attr_init(&attr);
+    //pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_JOINABLE);
+
+    /*creating threads*/
+
+    for(int i =0; i < inputMatrices[0]->size[0]; i++)
+    {
+        /*row*/
+        for (int j = 0; j < inputMatrices[1]->size[1]; j++){
+            /*element*/
+            index[0] = i;
+            index[1] = j; 
+            returnval = pthread_create(&threads[i * inputMatrices[0]->size[1] + j], 0,multiplyElement, (void *) index);
+            if (returnval)
+                std::cout << "Error: unable to create thread, "<< returnval << "\n";
+        }      
+        std::cout << "\n";
+
+    }
+
+    /*free attr and wait for threads*/
+    //pthread_attr_destroy(&attr);
+    //for(int i = 0; i < noof_threads; i++){
+    //    returnval = pthread_join(threads[i], &status);
+    //    if(returnval)
+    //        std::cout << "Error: unable to join thread, "<< returnval << "\n";
+//
+    //}
+
+    std::cout << "END1\t";
+
+    return 0;
 }
 
 
 int main(){
 
-    matrix * * x = matrices("input.txt");
+    ///*get file name*/
+    //char * fileName =(char *) malloc(FILENAME_MAX*sizeof(char));
+//
+    //std::cout << "Enter the name of the input file: ";
+    //std::cin >> fileName;
+//
 
-    int index[] = {1,3};
-    std::cout << multiplyElement(x , index);
 
+    /*read matrices from file*/
+    inputMatrices = matrices("input.txt");
+
+    elements_as_threads();
+
+    
     return 0;
 }
