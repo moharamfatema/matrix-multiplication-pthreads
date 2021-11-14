@@ -1,7 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <chrono>
-
+ 
 
 struct Timer
 {
@@ -40,14 +40,16 @@ int* matrix(){
 
         /*creaing one dimensional arr to improve performance*/
 
-        int* result = new int[x + y * sizeofint];
+        int* result = new int[x * y];
         for(int i =0;i<x;i++){
             for (int j = 0; j < y; j++)
             {
-                fin >> result[i+j*sizeofint];
+                fin >> result[i * y + j];
             }
             
         }
+     
+        
         return result;
     }else
         return nullptr;
