@@ -150,61 +150,13 @@ void print_matrix(matrix * m){
 }
 
 
-///*procedure 1*/
-//int elements_as_threads(){
-//    /*start timer*/
-//    Timer timer;
-//
-//    int noof_threads = inputMatrices[0]->size[0] * inputMatrices[1]->size[1];
-//    int returnval;
-//
-//    int * index = new int[2];
-//    
-//    /*initialize threads and attributes*/
-//    pthread_t threads[noof_threads]; //to store thread id's
-//    pthread_attr_t attr;
-//    void * status;
-//
-//    /*set as joinable thread*/
-//    //pthread_attr_init(&attr);
-//    //pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_JOINABLE);
-//
-//    /*creating threads*/
-//
-//    for(int i =0; i < inputMatrices[0]->size[0]; i++)
-//    {
-//        /*row*/
-//        for (int j = 0; j < inputMatrices[1]->size[1]; j++){
-//            /*element*/
-//            index[0] = i;
-//            index[1] = j; 
-//            returnval = pthread_create(&threads[i * inputMatrices[0]->size[1] + j], 0,multiplyElement, (void *) index);
-//            if (returnval)
-//                std::cout << "Error: unable to create thread, "<< returnval << "\n";
-//        }      
-//    }
-//
-//    /*free attr and wait for threads*/
-//    //pthread_attr_destroy(&attr);
-//    //for(int i = 0; i < noof_threads; i++){
-//    //    returnval = pthread_join(threads[i], &status);
-//    //    if(returnval)
-//    //        std::cout << "Error: unable to join thread, "<< returnval << "\n";
-////
-//    //}
-//
-//    std::cout << "END1\t";
-//
-//    return 0;
-//}
-//
-void dummy();
+void elements_as_threads();
 int main(){
 
     ///*get file name*/
     //char * fileName =(char *) malloc(FILENAME_MAX*sizeof(char));
 //
-    std::cout << "Enter the name of the input file: \n";
+    //std::cout << "Enter the name of the input file: \n";
     //std::cin >> fileName;
 //
 
@@ -230,20 +182,28 @@ int main(){
 
     pthread_t trash;
 
-    int * index = new int[2];
-    index[0] = 0;
-    index[1] = 0;
-
-    dummy();
+    elements_as_threads();
 
     //elements_as_threads()
 
 
     print_matrix(output_matrix);
 
+    /*cleanup*/
+    delete(output_matrix->arr);
+    delete(output_matrix->size);
+    delete(output_matrix);
+
+    for(int i =0; i < 2; i++){
+        delete(inputMatrices[i]->arr);
+        delete(inputMatrices[i]->size);
+        delete(inputMatrices[i]);
+    }
+    delete(inputMatrices);
+
     return 0;
 }
-void dummy(){
+void elements_as_threads(){
     Timer timer;
     intptr_t * index = new intptr_t[2];
 
@@ -251,10 +211,15 @@ void dummy(){
     pthread_t tid[noofthreads];
     pthread_attr_t attr;
     void * status;
-    int returnval;
+    int threads[noofthreads];
+    int k;
 
     /*creating threads*/
-    pthread_attr_init(&attr);
+    if(pthread_attr_init(&attr) != 0){
+        perror("attr init");
+        exit(-1);
+    }
+
     pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_JOINABLE);
     
     for(int i =0; i < inputMatrices[0]->size[0]; i++)
@@ -267,13 +232,14 @@ void dummy(){
             if (j == 2)break;
 
             /*element*/
+            k = i * inputMatrices[1]->size[1] + j; //actual index
             index[1] = j; 
             
             void * ptr = (void *) index;
 
-            returnval = pthread_create(&tid[ i * inputMatrices[1]->size[1] + j],&attr,call_multiply_element,ptr);
+            threads[k] = pthread_create(&tid[ k],&attr,call_multiply_element,ptr);
 
-            if(returnval){
+            if(threads[k]){
                 std::cout << "Unable to create thread. exiting...\n";
                 exit(-1);
             }
@@ -281,6 +247,7 @@ void dummy(){
     }
 
     /*free attr and join*/
+    int returnval;
     pthread_attr_destroy(&attr);
     for(int i = 0; i< 2; i++){//was noofthreads
         returnval = pthread_join(tid[i], &status);
@@ -289,5 +256,7 @@ void dummy(){
             exit(-1);
         }
     }
+    delete(index);
+
     std::cout << "END1, status:\t"<<status<<"\n";
 }
