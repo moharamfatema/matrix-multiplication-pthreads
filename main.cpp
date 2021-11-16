@@ -76,7 +76,6 @@ matrix * * matrices(const char * filename){
     std::ifstream fin;
     fin.open(filename);
     
-    int x , y;
 
     if (fin)
     {
@@ -136,6 +135,23 @@ void * call_multiply_element(void * ptr){
 
 }
 
+/*function to call element multiplier for each row - procedure 2*/
+void * call_multiply_row(void * ptr){
+    
+    int * i = (int *)ptr;
+    int * index = new int[2];
+    index[0] = *i;
+    
+    /*row*/
+    for(int j = 0; j < output_matrix->size[1]; j ++){
+        /*element*/
+        index[1] = j;
+        multiplyElement(index);
+    }
+
+    pthread_exit(0);
+}
+
 /*utility function to print matrix*/
 void print_matrix(matrix * m){
     int x = m->size[0];
@@ -151,6 +167,8 @@ void print_matrix(matrix * m){
 
 
 void elements_as_threads();
+void rows_as_threads();
+
 int main(){
 
     ///*get file name*/
@@ -168,7 +186,7 @@ int main(){
     /*check if multiplication is possible*/
     if( inputMatrices[0]->size[1] != inputMatrices[1]->size[0] )
     {
-        std::cout << "Invalid input: matrices cannot be multipled\n";
+        std::cout << "Invalid input: matrices cannot be multipled. Exiting...\n";
         return 0;
     }
 
@@ -180,14 +198,8 @@ int main(){
     outsize[1] = inputMatrices[1]->size[1];
     output_matrix->size = outsize;
 
-    pthread_t trash;
-
-    elements_as_threads();
-
-    //elements_as_threads()
-
-
-    print_matrix(output_matrix);
+    //elements_as_threads();
+    rows_as_threads();
 
     /*cleanup*/
     delete(output_matrix->arr);
@@ -204,14 +216,16 @@ int main(){
     return 0;
 }
 void elements_as_threads(){
-    Timer timer;
+    Timer * timer = new Timer;
     intptr_t * index = new intptr_t[2];
+    void * ptr = (void *) index;
+
 
     int noofthreads = inputMatrices[0]->size[0] * inputMatrices[1]->size[1];
     pthread_t tid[noofthreads];
     pthread_attr_t attr;
-    void * status;
-    int threads[noofthreads];
+    //void * status;
+    //int threads[noofthreads];
     int k;
 
     /*creating threads*/
@@ -220,26 +234,20 @@ void elements_as_threads(){
         exit(-1);
     }
 
-    pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_JOINABLE);
+    //pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_JOINABLE);
     
-    for(int i =0; i < inputMatrices[0]->size[0]; i++)
+    for(int i =0; i < output_matrix->size[0]; i++)
     {
-        if(i > 0)break;
         /*row*/
         index[0] = i;
 
-        for (int j = 0; j < inputMatrices[1]->size[1]; j++){
-            if (j == 2)break;
+        for (int j = 0; j < output_matrix->size[1]; j++){
 
             /*element*/
-            k = i * inputMatrices[1]->size[1] + j; //actual index
+            k = i * output_matrix->size[1] + j; //actual index
             index[1] = j; 
-            
-            void * ptr = (void *) index;
 
-            threads[k] = pthread_create(&tid[ k],&attr,call_multiply_element,ptr);
-
-            if(threads[k]){
+            if(pthread_create(&tid[ k],&attr,call_multiply_element,ptr)){
                 std::cout << "Unable to create thread. exiting...\n";
                 exit(-1);
             }
@@ -247,16 +255,50 @@ void elements_as_threads(){
     }
 
     /*free attr and join*/
-    int returnval;
-    pthread_attr_destroy(&attr);
-    for(int i = 0; i< 2; i++){//was noofthreads
-        returnval = pthread_join(tid[i], &status);
-        if(returnval){
+    //pthread_attr_destroy(&attr);
+    for(int i = 0; i< noofthreads; i++){
+        if(pthread_join(tid[i], nullptr)){
             std::cout << "Unable to join thread. exiting...\n";
             exit(-1);
         }
     }
     delete(index);
 
-    std::cout << "END1, status:\t"<<status<<"\n";
+    delete timer;
+
+    print_matrix(output_matrix);
+
+
+    std::cout << "END1\t";
+}
+
+void rows_as_threads(){
+
+    Timer timer;
+
+    int noofthreads = output_matrix->size[0];
+    pthread_t tid[noofthreads];
+
+    pthread_attr_t attr;
+    pthread_attr_init(&attr);
+
+
+    int * i  = new int;
+    
+    for(int k = 0; k < noofthreads; k ++){
+        *i = k;
+
+        pthread_create(&tid[k],&attr,&call_multiply_row,(void *)i);
+    }
+
+    pthread_attr_destroy(&attr);
+    for(int k = 0; k < noofthreads; k ++){
+        *i = k;
+
+        pthread_join(tid[k],nullptr);
+    }
+    
+    print_matrix(output_matrix);
+
+    std::cout << "END2\t";
 }
