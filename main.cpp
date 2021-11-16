@@ -5,10 +5,8 @@
 #include <unistd.h>
 #include <stdlib.h>
 
-
 /*formula for indices: [i][j] = i * noofcolumns + j*/
  
-
 /*to time any function*/
 struct Timer
 {
@@ -198,7 +196,7 @@ int main(){
     outsize[1] = inputMatrices[1]->size[1];
     output_matrix->size = outsize;
 
-    //elements_as_threads();
+    elements_as_threads();
     rows_as_threads();
 
     /*cleanup*/
@@ -215,26 +213,19 @@ int main(){
 
     return 0;
 }
+
 void elements_as_threads(){
-    Timer * timer = new Timer;
-    intptr_t * index = new intptr_t[2];
+    Timer  timer;
+    int * index = new int[2];
     void * ptr = (void *) index;
 
 
     int noofthreads = inputMatrices[0]->size[0] * inputMatrices[1]->size[1];
     pthread_t tid[noofthreads];
-    pthread_attr_t attr;
-    //void * status;
-    //int threads[noofthreads];
-    int k;
+
+    int k;//actual index of thread
 
     /*creating threads*/
-    if(pthread_attr_init(&attr) != 0){
-        perror("attr init");
-        exit(-1);
-    }
-
-    //pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_JOINABLE);
     
     for(int i =0; i < output_matrix->size[0]; i++)
     {
@@ -244,18 +235,17 @@ void elements_as_threads(){
         for (int j = 0; j < output_matrix->size[1]; j++){
 
             /*element*/
-            k = i * output_matrix->size[1] + j; //actual index
+            k = i * output_matrix->size[1] + j; 
             index[1] = j; 
 
-            if(pthread_create(&tid[ k],&attr,call_multiply_element,ptr)){
+            if(pthread_create(&tid[ k],nullptr,&call_multiply_element,ptr)){
                 std::cout << "Unable to create thread. exiting...\n";
                 exit(-1);
             }
         } 
     }
 
-    /*free attr and join*/
-    //pthread_attr_destroy(&attr);
+    /*join*/
     for(int i = 0; i< noofthreads; i++){
         if(pthread_join(tid[i], nullptr)){
             std::cout << "Unable to join thread. exiting...\n";
@@ -263,8 +253,6 @@ void elements_as_threads(){
         }
     }
     delete(index);
-
-    delete timer;
 
     print_matrix(output_matrix);
 
@@ -279,19 +267,16 @@ void rows_as_threads(){
     int noofthreads = output_matrix->size[0];
     pthread_t tid[noofthreads];
 
-    pthread_attr_t attr;
-    pthread_attr_init(&attr);
-
 
     int * i  = new int;
     
     for(int k = 0; k < noofthreads; k ++){
         *i = k;
 
-        pthread_create(&tid[k],&attr,&call_multiply_row,(void *)i);
+        pthread_create(&tid[k],nullptr,&call_multiply_row,(void *)i);
     }
 
-    pthread_attr_destroy(&attr);
+
     for(int k = 0; k < noofthreads; k ++){
         *i = k;
 
@@ -301,4 +286,6 @@ void rows_as_threads(){
     print_matrix(output_matrix);
 
     std::cout << "END2\t";
+
+    delete(i);
 }
