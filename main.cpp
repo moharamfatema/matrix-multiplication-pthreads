@@ -4,6 +4,7 @@
 #include <pthread.h>
 #include <unistd.h>
 #include <stdlib.h>
+#define FILENAME_MAX 4096
 
 /*formula for indices: [i][j] = i * noofcolumns + j*/
  
@@ -96,8 +97,11 @@ matrix * * matrices(const char * filename){
 
 
         return ms;
-    }else
-        return nullptr;
+    }else{
+        std::cout << "File not found.Exiting...\n";
+        exit(-1);
+    }
+
 }
 
 /*multiply element*/
@@ -172,16 +176,14 @@ void rows_as_threads();
 
 int main(){
 
-    ///*get file name*/
-    //char * fileName =(char *) malloc(FILENAME_MAX*sizeof(char));
-//
-    //std::cout << "Enter the name of the input file: \n";
-    //std::cin >> fileName;
-//
+    /*get file name*/
+    char * fileName = new char[FILENAME_MAX];
 
+    std::cout << "Enter the name of the input file: \n";
+    std::cin >> fileName;
 
     /*read matrices from file*/
-    inputMatrices = matrices("input.txt");
+    inputMatrices = matrices(fileName);
 
 
     /*check if multiplication is possible*/
@@ -198,12 +200,13 @@ int main(){
     outsize[0] = inputMatrices[0]->size[0];
     outsize[1] = inputMatrices[1]->size[1];
     output_matrix->size = outsize;
+    output_matrix->arr = new int[outsize[0] * outsize[1]];
 
-    //elements_as_threads();
+    elements_as_threads();
     rows_as_threads();
 
     /*cleanup*/
-    delete(output_matrix->arr);
+    delete[] output_matrix->arr;
     delete(output_matrix->size);
     delete(output_matrix);
 
