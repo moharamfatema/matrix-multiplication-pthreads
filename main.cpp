@@ -35,6 +35,10 @@ struct matrix
     int * arr;
 };
 
+/*args for thread function*/
+struct Index{
+    int i , j ;
+};
 
 /*global vars*/
 matrix * * inputMatrices; 
@@ -97,7 +101,7 @@ matrix * * matrices(const char * filename){
 }
 
 /*multiply element*/
-int * multiplyElement(int * index){
+int * multiplyElement(Index * index){
 
     /*get dimensions*/
     int * size1 = inputMatrices[0]->size;
@@ -111,23 +115,22 @@ int * multiplyElement(int * index){
     
     for (int i = 0; i < size1[1]; i++)
     {
-        x = inputMatrices[0]->arr[ index[0] * size1[1] + i];
-        y = inputMatrices[1]->arr[i * size2[1] + index[1]];
+        x = inputMatrices[0]->arr[ index->i * size1[1] + i];
+        y = inputMatrices[1]->arr[i * size2[1] + index->j];
         k = x * y;
         * result += k;
     }
-    output_matrix->arr[ index[0] * output_matrix->size[1] + index[1]] = * result;
+    output_matrix->arr[ index->i * output_matrix->size[1] + index->j] = * result;
     return result;
 }
 
 /*function to call element multiplier - for 1st procedure*/
 void * call_multiply_element(void * ptr){
 
-    int * index = (int *)ptr;
+    Index * index = (Index *)ptr;
 
     /*element*/
-    int * trash = multiplyElement(index);
-    delete(trash);
+    multiplyElement(index);
                   
     pthread_exit(0);
 
@@ -137,14 +140,14 @@ void * call_multiply_element(void * ptr){
 void * call_multiply_row(void * ptr){
     
     int * i = (int *)ptr;
-    int * index = new int[2];
-    index[0] = *i;
+    Index index;
+    index.i= *i;
     
     /*row*/
     for(int j = 0; j < output_matrix->size[1]; j ++){
         /*element*/
-        index[1] = j;
-        multiplyElement(index);
+        index.j = j;
+        multiplyElement(&index);
     }
 
     pthread_exit(0);
@@ -216,11 +219,8 @@ int main(){
 
 void elements_as_threads(){
     Timer  timer;
-    int * index = new int[2];
-    void * ptr = (void *) index;
-
-
-    int noofthreads = inputMatrices[0]->size[0] * inputMatrices[1]->size[1];
+    Index index;
+    int noofthreads = output_matrix->size[0] * output_matrix->size[1];
     pthread_t tid[noofthreads];
 
     int k;//actual index of thread
@@ -230,15 +230,15 @@ void elements_as_threads(){
     for(int i =0; i < output_matrix->size[0]; i++)
     {
         /*row*/
-        index[0] = i;
+        index.i = i;
 
         for (int j = 0; j < output_matrix->size[1]; j++){
 
             /*element*/
             k = i * output_matrix->size[1] + j; 
-            index[1] = j; 
+            index.j = j; 
 
-            if(pthread_create(&tid[ k],nullptr,&call_multiply_element,ptr)){
+            if(pthread_create(&tid[k],nullptr,call_multiply_element,&index)){
                 std::cout << "Unable to create thread. exiting...\n";
                 exit(-1);
             }
@@ -252,10 +252,8 @@ void elements_as_threads(){
             exit(-1);
         }
     }
-    delete(index);
 
     print_matrix(output_matrix);
-
 
     std::cout << "END1\t";
 }
@@ -268,17 +266,17 @@ void rows_as_threads(){
     pthread_t tid[noofthreads];
 
 
-    int * i  = new int;
+    int i ;
     
     for(int k = 0; k < noofthreads; k ++){
-        *i = k;
+        i = k;
 
-        pthread_create(&tid[k],nullptr,&call_multiply_row,(void *)i);
+        pthread_create(&tid[k],nullptr,call_multiply_row,&i);
     }
 
 
     for(int k = 0; k < noofthreads; k ++){
-        *i = k;
+        i = k;
 
         pthread_join(tid[k],nullptr);
     }
@@ -286,6 +284,4 @@ void rows_as_threads(){
     print_matrix(output_matrix);
 
     std::cout << "END2\t";
-
-    delete(i);
 }
