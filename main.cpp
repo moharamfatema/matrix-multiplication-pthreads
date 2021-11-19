@@ -19,13 +19,11 @@ struct Timer
          start = std::chrono::high_resolution_clock::now();
     }
     
-    ~Timer(){
-
+    float getTimeElapsed(){
         auto end  = std::chrono::high_resolution_clock::now();
         duration = end - start;
         
-        float ms = duration.count()*1000.00f;
-        std::cout << "Finished in "<<ms<<" ms\n";
+        return duration.count()*1000.00f;
     }
 };
 
@@ -171,8 +169,8 @@ void print_matrix(matrix * m){
 }
 
 
-void elements_as_threads();
-void rows_as_threads();
+float elements_as_threads();
+float rows_as_threads();
 
 int main(){
 
@@ -189,7 +187,7 @@ int main(){
     /*check if multiplication is possible*/
     if( inputMatrices[0]->size[1] != inputMatrices[1]->size[0] )
     {
-        std::cout << "Invalid input: matrices cannot be multipled. Exiting...\n";
+        std::cout << "Invalid input: matrices cannot be multiplied. Exiting...\n";
         return 0;
     }
 
@@ -202,8 +200,23 @@ int main(){
     output_matrix->size = outsize;
     output_matrix->arr = new int[outsize[0] * outsize[1]];
 
-    elements_as_threads();
-    rows_as_threads();
+    /*procedure 1 - by element*/
+    std::cout<<"By element:\n";
+    float time1 = elements_as_threads();
+    print_matrix(output_matrix);
+    std::cout << "\nEND1\t" << time1 << " ms\n";
+    
+    /*cleaning after procedure 1*/
+    delete[] output_matrix->arr;
+    
+    /*a new empty matrix*/
+    output_matrix->arr = new int[outsize[0] * outsize[1]];
+
+    /*procedure 2 - by row*/
+    std::cout<<"\nBy row:\n";
+    float time2 = rows_as_threads();
+    print_matrix(output_matrix);
+    std::cout << "\nEND2\t" << time2 << " ms\n";
 
     /*cleanup*/
     delete[] output_matrix->arr;
@@ -220,8 +233,7 @@ int main(){
     return 0;
 }
 
-void elements_as_threads(){
-    Timer  timer;
+float elements_as_threads(){
     int noofthreads = output_matrix->size[0] * output_matrix->size[1];
     Index * index = new Index[noofthreads];
 
@@ -230,7 +242,8 @@ void elements_as_threads(){
     int k;//actual index of thread
 
     /*creating threads*/
-    
+    Timer  timer;
+
     for(int i =0; i < output_matrix->size[0]; i++)
     {
         /*row*/
@@ -256,24 +269,22 @@ void elements_as_threads(){
             exit(-1);
         }
     }
-
+    float time = timer.getTimeElapsed();
     delete[] index;
-
-    print_matrix(output_matrix);
-
-    std::cout << "END1\t";
+    return time;
 }
 
-void rows_as_threads(){
-
-    Timer timer;
+float rows_as_threads(){
+    /*returns time in ms*/
 
     int noofthreads = output_matrix->size[0];
     pthread_t tid[noofthreads];
 
 
     int * i = new int [noofthreads];
-    
+
+    Timer timer;
+
     for(int k = 0; k < noofthreads; k ++){
         i[k] = k;
 
@@ -286,9 +297,8 @@ void rows_as_threads(){
         pthread_join(tid[k],nullptr);
     }
     
-    print_matrix(output_matrix);
+    float time = timer.getTimeElapsed();
 
     delete[] i;
-
-    std::cout << "END2\t";
+    return time;
 }
